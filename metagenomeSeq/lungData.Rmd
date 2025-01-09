@@ -1,0 +1,171 @@
+---
+title: "MetagenomeSeq Tutorial"
+author: "Nick Wlodychak"
+date: "2023-11-26"
+output: html
+---
+
+# Load Necessary Libraries and Data
+
+Metagenomics is the study of broad microenviromental distribution of bacteria or any genetic material in a given biome. We can do metagenomic studies on the human gut or a soil sample on a rural farm. `metagenomeSeq` is a novel normalization package in R that accounts for under-sampling in a sample. metagenomeSeq is designed to determine features that are differentially abundant between two or more groups of multiple samples.
+
+The code blocks in this .`rmd` are arranged to follow the tutorial function from the `metagenomeSeq` vignette.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!requireNamespace("BiocManager", quietly = TRUE))
+   install.packages("BiocManager")
+
+BiocManager::install("metagenomeSeq")
+BiocManager::install("biomformat")
+library(metagenomeSeq)
+library(biomformat)
+```
+
+# Read in `BIOM` file and convert to a `MRexperiment` object
+
+```{r biom_format}
+biom_file <- system.file("extdata", "min_sparse_otu_table.biom", package = "biomformat")
+b <- read_biom(biom_file)
+biom2MRexperiment(b)
+data("mouseData")
+b <- MRexperiment2biom(mouseData)
+write_biom(b, biom_file = "~/Desktop/otu_table.biom")
+```
+
+# Loading count data
+
+This portion of the code sets the directory to store the data using the `system.file` function, specifically referencing the "extdata" directory within the "metagenomeSeq" package. The `loadMeta` function is used to load count data from `CHK_NAME.otus.count.csv` located in the data directory. The exact name of the file seems to be a placeholder (CHK_NAME), which is typically replaced with the actual file name in practical applications.
+
+Using `dim(lung$counts)`, the dimensions of the count data are determined. This helps us understand the size of the dataset being worked with.
+
+```{r, loading_count}
+dataDirectory <- system.file("extdata", package = "metagenomeSeq")
+lung <- loadMeta(file.path(dataDirectory, "CHK_NAME.otus.count.csv"))
+dim(lung$counts)
+```
+
+# Loading annotated taxonomy
+
+The function `read.delim` is used to read a file containing taxonomy data. The file is named `CHK_otus.taxonomy.csv`, located in the previously defined `dataDirectory`.
+
+The argument `stringsAsFactors = FALSE` ensures that string data in the CSV file is read as plain text strings rather than being converted to factors.
+
+```{r loading_taxa}
+taxa <- read.delim(file.path(dataDirectory, "CHK_otus.taxonomy.csv"),
+                   stringsAsFactors = FALSE)
+```
+
+# Loading phenotype metadata
+
+The `loadPhenoData` function is used to load phenotype metadata from `CHK_clinical.csv`. We then use the match function is used to align the names of the columns in `lung$counts` with the row names in the loaded phenotype data (clin). This ensures the phenotype and meta data correspond to one another. The phenotype data (clin) is reordered based on the matching performed in the previous step.
+
+```{r loading_metadata}
+clin <- loadPhenoData(file.path(dataDirectory, "CHK_clinical.csv"), tran = TRUE)
+ord <- match(colnames(lung$counts), rownames(clin))
+clin <- clin[ord,]
+head(clin[1:2,])
+```
+
+# `MRexperiment` Object
+
+`MRexperiment` takes a count matrix, `phenoData`, and `featureData` as input. `phenotypeData` is created as an `AnnotatedDataFrame` from the clinical data (`clin`). This structures the phenotype metadata for use in the MRexperiment object.
+
+`OTUdata` is created as another `AnnotatedDataFrame` from the taxonomy data (`taxa`). This step formats the taxonomy data appropriately. The `newMRexperiment` function is used to create the `MRexperiment` object (obj). It combines the count matrix from `lung$counts`, the `phenotypeData`, and the `featureData`. This object then represents a complete dataset including count, phenotype, and taxonomy data.
+
+We then display `phenotypeData`, `OTUdata`, and the newly created `MRexperiment` object for initial inspection.
+
+```{r Mrexperiment_object}
+phenotypeData <- AnnotatedDataFrame(clin)
+OTUdata <- AnnotatedDataFrame(taxa)
+obj <- newMRexperiment(lung$counts, phenoData = phenotypeData, featureData = OTUdata)
+phenotypeData
+OTUdata
+obj
+```
+
+# Loading relevant example datasets
+
+The data function is used to load a dataset named `lungData`. After loading, the `lungData` dataset is displayed and examined.
+
+Here we use the data set **Human lung microbiome**.
+
+| The lung microbiome consists of respiratory flora sampled from six healthy individuals. Three healthy nonsmokers and three healthy smokers. The upper lung tracts were sampled by oral wash and oro-/nasopharyngeal swabs. Samples were taken using two bronchoscopes, serial bronchoalveolar lavage and lower airway protected brushes. [@Paulson_Stine_Bravo_Pop_2013]
+
+Similarly, a dataset named `mouseData` is loaded using the data function.
+
+The mouse data set is **Humanized gnotobiotic mouse gut** [2].
+
+| Twelve germ-free adult male C57BL/6J mice were fed a low-fat, plant polysaccharide-rich diet. Each mouse was gavaged with healthy adult human fecal material. Following the fecal transplant, mice remained on the low-fat, plant polysacchaaride-rich diet for four weeks, following which a subset of 6 were switched to a high-fat and high-sugar diet for eight weeks. Fecal samples for each mouse went through PCR amplification of the bacterial 16S rRNA gene V2 region weekly. [@Paulson_Stine_Bravo_Pop_2013]
+
+These datasets, `lungData` and `mouseData`, are included as examples to demonstrate the functionality of the `metagenomeSeq` package or for comparison with the user's own data. These serve as a turtorial to compare experimental data sets and generate visual packages.
+
+```{r example_datasets}
+data(lungData)
+lungData
+data(mouseData)
+mouseData
+```
+
+# Useful commands to access `phenoData` and `pData` information
+
+Functions like `phenoData(obj)` and `featureData(obj)` are used to access phenotype and feature data within the `MRexperiment` object. The `pData` and `fData` functions are utilized to inspect the first few entries of the phenotype and feature data, respectively.
+
+The portion of the code includes steps to filter and subset the data based on certain criteria, like selecting features with a minimum number of counts or samples with specific characteristics (e.g., smokers).
+
+```{r useful_commands}
+phenoData(obj)
+head(pData(obj), 3)
+featureData(obj)
+head(fData(obj)[, -c(2, 10)], 3)
+head(MRcounts(obj[, 1:2]))
+featuresToKeep <- which(rowSums(obj) >= 100)
+samplesToKeep <- which(pData(obj)$SmokingStatus == "Smoker")
+obj_smokers <- obj[featuresToKeep, samplesToKeep]
+obj_smokers
+head(pData(obj_smokers), 3)
+head(normFactors(obj))
+normFactors(obj) <- rnorm(ncol(obj))
+head(normFactors(obj))
+head(libSize(obj))
+libSize(obj) <- rnorm(ncol(obj))
+head(libSize(obj))
+filterData(mouseData, present = 10, depth = 1000)
+newobj <- mergeMRexperiments(mouseData, mouseData)
+```
+
+# Normalization
+
+Normalization in metagenomic analysis is essential to account for varying depths of coverage across samples. Biasis introduced experimentally, e.g. from extraction of PCR must be taken into account to ensure comparability . The **`cumNorm`** method calculates scaling factors based on the sum of counts up to a certain quantile in each sample.
+
+These factors normalize the data, making the counts comparable across samples by adjusting for different sequencing depths. **`wrenchNorm`** offers an alternative normalization approach, such as grouping samples by phenotypic characteristics, e.g. diet in **`mouseData`**
+
+```{r normalization}
+data(lungData)
+p <- cumNormStatFast(lungData)
+lungData <- cumNorm(lungData, p = p)
+condition <- mouseData$diet
+mouseData <- wrenchNorm(mouseData, condition = condition)
+mat <- MRcounts(lungData, norm = TRUE, log = TRUE)[1:5, 1:5]
+exportMat(mat, file = file.path(dataDirectory, "tmp.tsv"))
+exportStats(lungData[, 1:5], file = file.path(dataDirectory,
+                                              "tmp.tsv"))
+head(read.csv(file = file.path(dataDirectory, "tmp.tsv"), sep = "\t"))
+```
+
+# Statistical Testing
+
+One of the benefits of `metagenomeSeq` is its power to address undersampling and detection of differentially abundant features (OTUs, genes, etc.). [@Paulson_Stine_Bravo_Pop_2013] Once the data has been normalized, statistical models can be applied to the data sets.
+
+Here the data example uses `fitFeatureModel` for differential abundance testing by comparing smoker\'s and non-smokers lung microbiome.
+
+```{r statistical_testing}
+data(lungData)
+lungData <- lungData[, -which(is.na(pData(lungData)$SmokingStatus))]
+lungData <- filterData(lungData, present = 30, depth = 1)
+lungData <- cumNorm(lungData, p = 0.5)
+pd <- pData(lungData)
+mod <- model.matrix(~1 + SmokingStatus, data = pd)
+lungres1 <- fitFeatureModel(lungData, mod)
+head(MRcoefs(lungres1))
+```

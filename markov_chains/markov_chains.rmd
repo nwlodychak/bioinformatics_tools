@@ -1,0 +1,292 @@
+---
+title: "Markov Chains"
+output: html_notebook
+---
+# Overview
+This is a notebook for generating DNA sequences with a multinomial model for DNA sequence evolution using the `seqinr` package
+
+```{r load_packages, message = FALSE}
+# install.packages("seqinr")
+library(plyr)
+library(seqinr)
+library(ggplot2)
+library(gridExtra)
+library(tidyverse)
+library(docstring)
+```
+
+# Plot Data
+Function to plot first order data
+
+```{r functions, message = FALSE}
+plotData <- function(seq, nucs, title) {
+         #' Plot the Markov Data
+         #'
+         #' Generates the counts of the Markov data and plots it for 1, 2, 3 mers
+         #'
+         #' @param seq: the sequence generated
+         #' @param nucs: compound sequence alphabet
+         #' @param plot title
+
+   # Initialize an empty list to store results
+   l <- list()
+   # Create the for loop to count frequencies for 1,2,3-nucleotides
+   for (i in 1:3) {
+      l[[i]] <- seqinr::count(seq, i, alphabet = nucs, freq = TRUE)
+      l[[i]] <- data.frame(l[[i]], nmer = paste0(i, "-mer"))
+   }
+
+   # Initialize list to store plots
+   plots <- list()
+
+   # Create plots for each n-mer
+   for (i in 1:3) {
+      df           <- l[[i]]
+      colnames(df) <- c("Base", "Base_Proportion", "nmer")
+
+      # Create plot
+      plots[[i]] <- ggplot(df, aes(x = Base, y = Base_Proportion, fill = Base)) +
+         geom_bar(stat = "identity") +
+         theme(legend.position = "none") +
+         ggtitle(paste("Compositional bias of each ", i, "-mer"))
+
+      # Add special formatting for trinucleotides
+      if (i == 3) {
+         plots[[i]] <- plots[[i]] +
+            theme(axis.text.x = element_text(angle = 90, vjust = 0.5, size = 8))
+      }
+   }
+
+   grid.arrange(plots[[1]], plots[[2]], plots[[3]],
+                nrow = 3,
+                top  = title)
+}
+
+
+generateSeq <- function(length, nucs, pa, matrix) {
+         #' Function to generate the seqeunce
+         #'
+         #' Generates the counts of the Markov data and plots it for 1, 2, 3 mers
+         #'
+         #' @param length: length of sequence
+         #' @param nucs: alphabet for the seqeunce
+         #' @param pa: inital probability
+         #' @param matrix: probability distribution of markov chain
+
+   sequence    <- character()
+   first_nuc   <- sample(nucs, 1, rep = TRUE, prob = pa)
+   sequence[1] <- first_nuc
+
+   # Loop to generate sequences from probability matrix
+   for (i in 2:length) {
+      previous_nuc <- sequence[i - 1]
+      new_prob     <- matrix[previous_nuc,]
+      sequence[i]  <- sample(nucs, 1, prob = new_prob)
+   }
+
+   return(sequence)
+}
+
+
+generatehmmSeq <- function(length, nucs, pa, states, transition_matrix, emission_matrix) {
+         #' Function to generate the seqeunce, given a HMM.
+         #'
+         #' Generates the counts of the Markov data and plots it for 1, 2, 3 mers
+         #'
+         #' @param length: length of sequence
+         #' @param nucs: alphabet for the seqeunce
+         #' @param pa: inital probability
+         #' @param states: states for the HMM
+         #' @param transition_matrix: probability matrix of transition
+         #' @param emission_matrix: probability matrix of emission
+
+   state_df <- tibble(
+      Position   = numeric(),
+      State      = char(),
+      Nucleotide = char()
+   )
+
+   sequence      <- character()  # Sequence vector
+   new_states    <- character()  # States vector
+   first_state   <- sample(states, 1, rep = TRUE, prob = pa)
+   new_states[1] <- first_state
+
+   # Initialize the sequence using the first state
+   probs       <- emission_matrix[first_state,]
+   first_nuc   <- sample(nucs, 1, rep = TRUE, prob = probs)
+   sequence[1] <- first_nuc
+
+   # Generate sequence using transition and emmision probabilites
+   for (i in 2:length) {
+      if (i == 1) {
+         nuc      <- sequence[i]
+         state    <- new_states[i]
+         state_df <- state_df %>% add_row(tibble_row(
+            Position   = i,
+            State      = state,
+            Nucleotide = nuc
+         )
+         )
+
+      } else {
+         prev_state    <- new_states[i - 1]
+         state_probs   <- transition_matrix[prev_state,]
+         state         <- sample(states, 1, rep = TRUE, prob = state_probs)
+         probabilities <- emission_matrix[state,]
+         nuc           <- sample(nucs, 1, rep = TRUE, prob = probabilities)
+         sequence[i]   <- nuc
+         new_states[i] <- state
+
+         # Get states and positions for length of generated sequence
+         state_df <- state_df %>% add_row(tibble_row(
+            Position   = i,
+            State      = state,
+            Nucleotide = nuc
+         )
+         )
+      }
+   }
+
+   return(list(dataframe = state_df, sequence = sequence))
+}
+
+
+viterbi <- function(sequence, transition_matrix, emission_matrix) {
+         #' Function to code for the viterbi algorithm
+         #'
+         #' Generates optimal path for a sequence given a transition and emission matrix of probabilities
+         #'
+         #' @param length: length of sequence
+         #' @param nucs: alphabet for the seqeunce
+         #' @param pa: inital probability
+         #' @param states: states for the HMM
+         #' @param transition_matrix: probability matrix of transition
+         #' @param emission_matrix: probability matrix of emission
+    sequence <- toupper(sequence)
+    n_states <- nrow(transition_matrix)
+    seq_length <- length(sequence)
+
+    # Initialize matrices in log space to prevent underflow
+    v <- matrix(-Inf, nrow = seq_length, ncol = n_states)
+    backtrack <- matrix(0, nrow = seq_length, ncol = n_states)
+
+    # Initialize first column
+    v[1, ] <- log(emission_matrix[, sequence[1]])
+
+    # Forward pass with vectorized operations
+    for (t in 2:seq_length) {
+        for (j in 1:n_states) {
+            # Vectorized maximum calculation
+            probs <- v[t-1, ] + log(transition_matrix[, j]) +
+                    log(emission_matrix[j, sequence[t]])
+            v[t, j] <- max(probs)
+            backtrack[t, j] <- which.max(probs)
+        }
+    }
+
+    # Backtrack to find optimal path
+    path <- integer(seq_length)
+    path[seq_length] <- which.max(v[seq_length, ])
+
+    for (t in seq_length:2) {
+        path[t-1] <- backtrack[t, path[t]]
+    }
+
+    # Create results list
+    results <- list(
+        path = path,
+        states = rownames(emission_matrix)[path],
+        log_probability = max(v[seq_length, ])
+    )
+
+    return(results)
+}
+
+```
+
+# Multinomial Model
+Example of a multinomial model of DNA evolution (the current nucleotide is totally "independent" of the previous nucleotide).
+The multinomial model is:
+```
+p(A) + p(C) + p(G) + p(T) = 1.0
+0.2 + 0.3 + 0.3 + 0.2  = 1.0
+```
+```{r}
+pdf("markov_plots.pdf")
+
+# Alphabet
+nucleotides <- c("A", "C", "G", "T")
+# Probability Distribution
+zero_probabilites <- c(0.2, 0.3, 0.3, 0.2)
+names(zero_probabilites) <- nucleotides
+
+# Create a seqeunce using this distribution
+zero_sequence <- sample(nucleotides, 1000, rep = T, prob = zero_probabilites)
+plotData(zero_sequence, nucleotides, "Multinomial Model of DNA Evoloution")
+
+transition_matrix <- rbind(
+    c(0.2, 0.3, 0.3, 0.2),
+    c(0.1, 0.41, 0.39, 0.1),
+    c(0.25, 0.25, 0.25, 0.25),
+    c(0.5, 0.17, 0.17, 0.17))
+
+dimnames(transition_matrix) <- list(c("A","C","G","T"),
+                                    c("A","C","G","T"))
+
+inProb <- c(0.4, 0.1, 0.1, 0.4)
+names(inProb) <- nucleotides
+# So, the sequence will have a 40% to start with an A or a T and 10% with C or G
+
+# Use the generateFirstOrderSeq function to generate a sequence of 1000 bases long
+firstOrderSeq <- generateSeq(1000, nucleotides, inProb, transition_matrix)
+# plot the data
+plotData(firstOrderSeq, nucleotides, "Markov Chain of first order")
+
+# Now let's create a much larger character vector, that we'll append to in a loop
+#all <- character() # create an empty vector
+#for(i in 1:100){
+#  firstOrderSeq <- generateFirstOrderSeq(1000,nucleotides,inProb,mytransitionmatrix)
+#  all <- c(firstOrderSeq, all)
+#  #cat("Dna " , i , " " , firstOrderSeq, "\n", sep="")
+#}
+#plotData(all, nucleotides,  "Markov Chain of first order with Expanded Sequence")
+
+#    Example of a Hidden Markov Chain of first order (the current nucleotide only
+#    depends on the previous nucleotide).
+
+states <- c("AT-rich", "GC-rich") # Define the names of the states
+ATrichprobs <- c(0.7, 0.3)             # Set the probabilities of switching states, where the previous state was "AT-rich"
+GCrichprobs <- c(0.1, 0.9)             # Set the probabilities of switching states, where the previous state was "GC-rich"
+theTransitionMatrix <- matrix(c(ATrichprobs, GCrichprobs), 2, 2, byrow = TRUE) # Create a 2 x 2 matrix
+rownames(theTransitionMatrix) <- states
+colnames(theTransitionMatrix) <- states
+
+ATrichstateprobs <- c(0.39, 0.1, 0.1, 0.41) # Set the values of the probabilities, for the AT-rich state
+GCrichstateprobs <- c(0.1, 0.41, 0.39, 0.1) # Set the values of the probabilities, for the GC-rich state
+theEmissionMatrix <- matrix(c(ATrichstateprobs, GCrichstateprobs), 2, 4, byrow = TRUE) # Create a 2 x 4 matrix
+rownames(theEmissionMatrix) <- states
+colnames(theEmissionMatrix) <- nucleotides
+
+# We can use the generateFirstOrderhmmseq() function to generate a sequence using a particular HMM.
+# For example, to create a sequence of 30 nucleotides using the HMM with “AT-rich” and “GC-rich” states described in the
+# transition matrix thetransitionmatrix, the emission matrix theemissionmatrix,
+# and uniform starting probabilities (ie. ΠAT-rich = 0.5, ΠGC-rich = 0.5), we type:
+initialProb <- c(0.5, 0.5)
+hmm_data <- generatehmmSeq(10000, nucleotides, initialProb, states, theTransitionMatrix, theEmissionMatrix)
+plotData(hmm_data$sequence, nucleotides, "Hidden Markov Model of first order")
+print(hmm_data$dataframe)
+# Given a HMM, and a particular DNA sequence, you can use the Viterbi function
+# to find the state of that HMM that was most likely to have generated the nucleotide at each
+# position in the DNA sequence:
+
+myseq <- c("A", "A", "G", "C", "G", "T", "G", "G", "G", "G", "C", "C", "C", "C",
+           "G", "G", "C", "G", "A", "C", "A", "T", "G", "G", "G", "G", "T", "G",
+           "T", "C")
+viterbi(myseq, theTransitionMatrix, theEmissionMatrix)
+
+
+# for more advanced Markov chain analysis see the package:
+# Package 'markovchain' - R Project
+
+dev.off()
+```

@@ -1,0 +1,107 @@
+TY  - JOUR
+TI  - Shotgun metagenomics, from sampling to analysis.
+AU  - Quince, Christopher
+AU  - Walker, Alan W.
+AU  - Simpson, Jared T.
+AU  - Loman, Nicholas J.
+AU  - Segata, Nicola
+T2  - Nature biotechnology
+AB  - Diverse microbial communities of bacteria, archaea, viruses and single-celled eukaryotes have crucial roles in the environment and in human health. However,  microbes are frequently difficult to culture in the laboratory, which can  confound cataloging of members and understanding of how communities function.  High-throughput sequencing technologies and a suite of computational pipelines  have been combined into shotgun metagenomics methods that have transformed  microbiology. Still, computational approaches to overcome the challenges that  affect both assembly-based and mapping-based metagenomic profiling, particularly  of high-complexity samples or environments containing organisms with limited  similarity to sequenced genomes, are needed. Understanding the functions and  characterizing specific strains of these communities offers biotechnological  promise in therapeutic discovery and innovative ways to synthesize products using  microbial factories and can pinpoint the contributions of microorganisms to  planetary, animal and human health.
+DA  - 2017/09/12/
+PY  - 2017
+DO  - 10.1038/nbt.3935
+VL  - 35
+IS  - 9
+SP  - 833
+EP  - 844
+J2  - Nat Biotechnol
+LA  - eng
+SN  - 1546-1696 1087-0156
+KW  - *High-Throughput Nucleotide Sequencing
+KW  - *Metagenomics
+KW  - *Microbiota/genetics/physiology
+KW  - Animals
+KW  - Biomedical Research
+KW  - Humans
+ER  - 
+
+TY  - JOUR
+TI  - Differential abundance analysis for microbial marker-gene surveys.
+AU  - Paulson, Joseph N.
+AU  - Stine, O. Colin
+AU  - Bravo, Héctor Corrada
+AU  - Pop, Mihai
+T2  - Nature methods
+AB  - We introduce a methodology to assess differential abundance in sparse high-throughput microbial marker-gene survey data. Our approach, implemented in  the metagenomeSeq Bioconductor package, relies on a novel normalization technique  and a statistical model that accounts for undersampling-a common feature of  large-scale marker-gene studies. Using simulated data and several published  microbiota data sets, we show that metagenomeSeq outperforms the tools currently  used in this field.
+DA  - 2013/12//undefined
+PY  - 2013
+DO  - 10.1038/nmeth.2658
+VL  - 10
+IS  - 12
+SP  - 1200
+EP  - 1202
+J2  - Nat Methods
+LA  - eng
+SN  - 1548-7105 1548-7091
+KW  - Animals
+KW  - Humans
+KW  - *Genetic Markers
+KW  - *Microbiota
+KW  - Algorithms
+KW  - Area Under Curve
+KW  - Cluster Analysis
+KW  - Computer Simulation
+KW  - Databases, Genetic
+KW  - Gene Expression Profiling/methods
+KW  - Genetic Variation
+KW  - Intestines/microbiology
+KW  - Metagenomics/*methods
+KW  - Mice
+KW  - Models, Genetic
+KW  - Models, Statistical
+KW  - Normal Distribution
+KW  - Phenotype
+KW  - RNA, Ribosomal, 16S/*genetics
+KW  - Sequence Analysis, DNA
+KW  - Software
+ER  - 
+
+TY  - JOUR
+TI  - Best practices for analysing microbiomes
+AU  - Knight, Rob
+AU  - Vrbanac, Alison
+AU  - Taylor, Bryn C.
+AU  - Aksenov, Alexander
+AU  - Callewaert, Chris
+AU  - Debelius, Justine
+AU  - Gonzalez, Antonio
+AU  - Kosciolek, Tomasz
+AU  - McCall, Laura-Isobel
+AU  - McDonald, Daniel
+AU  - Melnik, Alexey V.
+AU  - Morton, James T.
+AU  - Navas, Jose
+AU  - Quinn, Robert A.
+AU  - Sanders, Jon G.
+AU  - Swafford, Austin D.
+AU  - Thompson, Luke R.
+AU  - Tripathi, Anupriya
+AU  - Xu, Zhenjiang Z.
+AU  - Zaneveld, Jesse R.
+AU  - Zhu, Qiyun
+AU  - Caporaso, J. Gregory
+AU  - Dorrestein, Pieter C.
+T2  - Nature Reviews Microbiology
+AB  - Complex microbial communities shape the dynamics of various environments, ranging from the mammalian gastrointestinal tract to the soil. Advances in DNA sequencing technologies and data analysis have provided drastic improvements in microbiome analyses, for example, in taxonomic resolution, false discovery rate control and other properties, over earlier methods. In this Review, we discuss the best practices for performing a microbiome study, including experimental design, choice of molecular analysis technology, methods for data analysis and the integration of multiple omics data sets. We focus on recent findings that suggest that operational taxonomic unit-based analyses should be replaced with new methods that are based on exact sequence variants, methods for integrating metagenomic and metabolomic data, and issues surrounding compositional data analysis, where advances have been particularly rapid. We note that although some of these approaches are new, it is important to keep sight of the classic issues that arise during experimental design and relate to research reproducibility. We describe how keeping these issues in mind allows researchers to obtain more insight from their microbiome data sets.
+DA  - 2018/07/01/
+PY  - 2018
+DO  - 10.1038/s41579-018-0029-9
+VL  - 16
+IS  - 7
+SP  - 410
+EP  - 422
+J2  - Nature Reviews Microbiology
+SN  - 1740-1534
+UR  - https://doi.org/10.1038/s41579-018-0029-9
+ER  - 
+

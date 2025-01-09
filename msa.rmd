@@ -1,0 +1,30 @@
+---
+title: "MSA: Multi Sequence Alignment"
+output: html_notebook
+---
+
+```{r}
+library(msa)
+library(Biostrings)
+
+sequences <- readDNAStringSet("data/offseqs.fa") # Change to your fasta
+
+# for other with a dataframe
+seq_df <- data.frame(
+  name = names(sequences),
+  sequence = as.character(sequences)
+)
+
+# Perform multiple sequence alignment using ClustalOmega
+seqoff <- msa(sequences, "ClustalOmega", order = "input")
+msaPrettyPrint(seqoff,
+               output="pdf",
+               showLogo = "none",
+               file="seqoff.pdf",
+               showNames="left",
+               showConsensus="bottom",
+               showNumbering = "right",
+               consensusColors="ColdHot",
+               consensusThreshold=50)
+
+```
