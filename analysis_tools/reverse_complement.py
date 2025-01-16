@@ -1,4 +1,23 @@
 import csv
+import argparse
+
+
+def get_args():
+    parser = argparse.ArgumentParser(
+        description="Convert a list of sequences to their reverse complement.")
+    parser.add_argument("-i", "--infile",
+                        help="Input file containing sequences to reverse complement.",
+                        metavar="infile",
+                        required=True,
+                        default=".")
+    parser.add_argument("-o", "--outfile",
+                        help="Output location to write to.",
+                        metavar="outfile",
+                        required=True,
+                        default=".")
+    args = parser.parse_args()
+    return args
+
 
 def reverse_complement(seq):
     complement = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
@@ -18,6 +37,6 @@ def process_csv(input_file, output_file):
                 csv_writer.writerow([original_seq, rev_comp_seq])
 
 # Use the function with the input and output file paths
-input_csv = '/Users/nwlodychak/Downloads/index.csv'  # Replace with your input CSV file path
-output_csv = '/Users/nwlodychak/Downloads/output_index.csv'  # Replace with your output CSV file path
-process_csv(input_csv, output_csv)
+
+args = get_args()
+process_csv(args.infile, args.outfile)
